@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nifty 50 Live Master Dashboard & 9:30 AM Signal Engine</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Inter', sans-serif; background-color: #030712; color: #f3f4f6; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 flex flex-col h-screen overflow-hidden">
+
+    <!-- HEADER -->
+    <header class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-lg border border-indigo-500/30">
+                <i class="fa-solid fa-satellite-dish"></i>
+            </div>
+            <div>
+                <span class="text-[10px] uppercase tracking-wider bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-semibold">Free Live Stream</span>
+                <h1 class="text-base font-bold text-white tracking-tight">Nifty 50 Master Trading Engine</h1>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 text-xs">
+            <div class="bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-slate-300 font-mono">
+                <i class="fa-regular fa-clock text-indigo-400 mr-1.5"></i> <span id="clock-time">--:--:--</span>
+            </div>
+            <button onclick="fetchLiveData()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-semibold shadow-lg shadow-indigo-600/30 transition flex items-center gap-2">
+                <i class="fa-solid fa-rotate"></i> Fetch Live Data Now
+            </button>
+        </div>
+    </header>
+
+    <!-- DASHBOARD CONTAINER -->
+    <main class="flex-1 overflow-y-auto p-6 max-w-7xl mx-auto w-full space-y-6">
+        
+        <!-- SECTION 1: 9:30 AM MASTER SIGNAL BANNER -->
+        <div id="signal-card" class="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-500">
+            <div class="flex items-center gap-4">
+                <div id="signal-icon-wrapper" class="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl shadow-lg bg-slate-800 text-slate-400 shrink-0">
+                    <i id="signal-icon" class="fa-solid fa-hourglass-half"></i>
+                </div>
+                <div>
+                    <span id="signal-time-badge" class="text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full font-bold bg-slate-800 text-slate-400">Connecting to Server...</span>
+                    <h2 id="signal-title" class="text-2xl font-extrabold text-white mt-1">9:30 AM Signal Evaluation Pending</h2>
+                    <p id="signal-description" class="text-xs text-slate-400 mt-0.5">Primary market assessment initializing. Ensure Python server is active on localhost:5000.</p>
+                </div>
+            </div>
+            <div class="bg-slate-950/80 border border-slate-800 p-4 rounded-xl text-right min-w-[200px]">
+                <div class="text-[10px] text-slate-400 uppercase font-bold">Rule Action Zone</div>
+                <div id="signal-action-text" class="text-sm font-bold text-indigo-400 mt-0.5">Standby Mode</div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: LIVE METRICS & CONFLUENCE CHECKLIST -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- COLUMN 1: LIVE PRICING DATA -->
+            <div class="space-y-6">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                        <i class="fa-solid fa-chart-line text-indigo-400 mr-1.5"></i> Live Nifty 50 Spot
+                    </span>
+                    <div id="val-nifty" class="text-3xl font-extrabold text-white">--.--</div>
+                    <div class="mt-2 text-xs flex justify-between text-slate-400">
+                        <span>Spread from Open:</span>
+                        <span id="val-spread" class="font-bold text-emerald-400">--</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                        <i class="fa-solid fa-gauge-high text-rose-400 mr-1.5"></i> Live India VIX
+                    </span>
+                    <div id="val-vix" class="text-3xl font-extrabold text-white">--.--</div>
+                    <p id="vix-desc" class="text-[11px] text-slate-400 mt-2">Checking market volatility environment...</p>
+                </div>
+            </div>
+
+            <!-- COLUMN 2: TECHNICAL CONFLUENCE CHECKLIST -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-3 border-b border-slate-800 pb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-amber-400"></i> Technical Confluence Rules
+                    </h3>
+                    <ul class="space-y-2.5 text-xs">
+                        <li class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex items-center justify-between">
+                            <span class="text-slate-300"><i class="fa-solid fa-water text-indigo-400 mr-1.5"></i> VWAP Position:</span>
+                            <span id="conf-vwap" class="font-semibold text-slate-400">Verify on Chart</span>
+                        </li>
+                        <li class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex items-center justify-between">
+                            <span class="text-slate-300"><i class="fa-solid fa-cubes text-emerald-400 mr-1.5"></i> Order Block (OB):</span>
+                            <span id="conf-ob" class="font-semibold text-slate-400">Wait for Retest</span>
+                        </li>
+                        <li class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex items-center justify-between">
+                            <span class="text-slate-300"><i class="fa-solid fa-bolt text-amber-400 mr-1.5"></i> Fair Value Gap (FVG):</span>
+                            <span id="conf-fvg" class="font-semibold text-slate-400">Check Imbalance</span>
+                        </li>
+                        <li class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex items-center justify-between">
+                            <span class="text-slate-300"><i class="fa-solid fa-chart-simple text-rose-400 mr-1.5"></i> 20 EMA Trend:</span>
+                            <span id="conf-ema" class="font-semibold text-slate-400">Aligned with Signal</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="mt-4 text-[10px] text-slate-500 text-center">
+                    Enter trade ONLY when 9:30 AM signal matches chart confluences.
+                </div>
+            </div>
+
+            <!-- COLUMN 3: EXECUTION RULES PLAYBOOK -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-3 border-b border-slate-800 pb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-emerald-400"></i> Execution Discipline
+                    </h3>
+                    <div class="space-y-3 text-xs">
+                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                            <span class="text-[10px] text-slate-400 font-bold uppercase block mb-1">Dual-Confirmation Rule:</span>
+                            <p class="text-slate-200">Both <strong>Primary Analysis</strong> and <strong>Intraday Scanner</strong> must match (Both Green or Both Red). If mixed, stay cash.</p>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                            <span class="text-[10px] text-slate-400 font-bold uppercase block mb-1">Risk Management:</span>
+                            <ul class="list-disc list-inside text-slate-300 space-y-1">
+                                <li>Stop Loss: Below Bullish OB / Above Bearish OB</li>
+                                <li>Minimum Target: 1:2 Risk-to-Reward</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 text-[10px] text-slate-500 text-center" id="last-updated">
+                    Last Live Fetch: Waiting...
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- AUTOMATION LOGIC -->
+    <script>
+        setInterval(() => {
+            document.getElementById('clock-time').innerText = new Date().toLocaleTimeString();
+        }, 1000);
+
+        async function fetchLiveData() {
+            try {
+                const response = await fetch('http://localhost:5000/api/live-data');
+                const data = await response.json();
+
+                // Populate Prices
+                document.getElementById('val-nifty').innerText = data.nifty_spot.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+                document.getElementById('val-vix').innerText = data.india_vix.toFixed(2);
+                
+                const spreadElem = document.getElementById('val-spread');
+                spreadElem.innerText = (data.spread_pts >= 0 ? '+' : '') + data.spread_pts + ' pts';
+                spreadElem.className = data.spread_pts >= 0 ? "font-bold text-emerald-400" : "font-bold text-rose-400";
+
+                document.getElementById('vix-desc').innerText = data.india_vix < 13 
+                    ? "Low Volatility (<13): Expect range-bound or slow grinding moves." 
+                    : "Normal/High Volatility: Expect strong directional swings.";
+
+                document.getElementById('last-updated').innerText = `Last Live Fetch: ${data.timestamp}`;
+
+                // Update 9:30 AM Signal Elements
+                const card = document.getElementById('signal-card');
+                const iconWrapper = document.getElementById('signal-icon-wrapper');
+                const icon = document.getElementById('signal-icon');
+                const timeBadge = document.getElementById('signal-time-badge');
+                const title = document.getElementById('signal-title');
+                const desc = document.getElementById('signal-description');
+                const actionText = document.getElementById('signal-action-text');
+
+                if (data.signal_930 === "GREEN") {
+                    card.className = "w-full bg-emerald-950/40 border-2 border-emerald-500/50 rounded-2xl p-6 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-500";
+                    iconWrapper.className = "w-16 h-16 rounded-2xl flex items-center justify-center text-2xl shadow-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shrink-0";
+                    icon.className = "fa-solid fa-arrow-trend-up";
+                    timeBadge.className = "text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                    timeBadge.innerText = "9:30 AM Verified Signal";
+                    title.innerText = "🟢 GREEN SIGNAL: CALL SETUP (CE)";
+                    desc.innerText = "Nifty spot holding strong above open. Primary market analysis is Bullish. Look for Call entries near Bullish Order Block or FVG above VWAP.";
+                    actionText.innerText = "LOOK FOR CALL (CE)";
+                    actionText.className = "text-sm font-bold text-emerald-400 mt-0.5";
+
+                    document.getElementById('conf-vwap').innerText = "Price > VWAP";
+                    document.getElementById('conf-vwap').className = "font-semibold text-emerald-400";
+                    document.getElementById('conf-ob').innerText = "Bullish OB Active";
+                    document.getElementById('conf-ob').className = "font-semibold text-emerald-400";
+                } else {
+                    card.className = "w-full bg-rose-950/40 border-2 border-rose-500/50 rounded-2xl p-6 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-500";
+                    iconWrapper.className = "w-16 h-16 rounded-2xl flex items-center justify-center text-2xl shadow-lg bg-rose-500/20 text-rose-400 border border-rose-500/40 shrink-0";
+                    icon.className = "fa-solid fa-arrow-trend-down";
+                    timeBadge.className = "text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30";
+                    timeBadge.innerText = "9:30 AM Verified Signal";
+                    title.innerText = "🔴 RED SIGNAL: PUT SETUP (PE)";
+                    desc.innerText = "Nifty spot trading below open under selling pressure. Primary market analysis is Bearish. Look for Put entries on retest of Bearish Order Block or FVG below VWAP.";
+                    actionText.innerText = "LOOK FOR PUT (PE)";
+                    actionText.className = "text-sm font-bold text-rose-400 mt-0.5";
+
+                    document.getElementById('conf-vwap').innerText = "Price < VWAP";
+                    document.getElementById('conf-vwap').className = "font-semibold text-rose-400";
+                    document.getElementById('conf-ob').innerText = "Bearish OB Active";
+                    document.getElementById('conf-ob').className = "font-semibold text-rose-400";
+                }
+
+            } catch (err) {
+                console.error("Server connection offline. Ensure server.py is running on localhost:5000", err);
+            }
+        }
+
+        // Auto-fetch every 10 seconds during market hours
+        setInterval(fetchLiveData, 10000);
+        window.onload = fetchLiveData;
+    </script>
+</body>
+</html>
