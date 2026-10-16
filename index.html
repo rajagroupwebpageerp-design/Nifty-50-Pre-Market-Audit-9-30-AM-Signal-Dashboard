@@ -201,7 +201,7 @@
 
         
         // >>> Set this to your deployed HTTPS backend URL when hosting on GitHub Pages <<<
-        const API_URL = "http://localhost:5000/api/live-data";
+        const API_URL = location.protocol === "file:" || location.hostname.endsWith("github.io") ? "http://localhost:5000/api/live-data" : "/api/live-data";
         const $ = id => document.getElementById(id);
         const fmt = n => n == null ? "N/A" : Number(n).toLocaleString("en-IN", {maximumFractionDigits: 2});
         const cr = n => n == null ? "N/A" : (n >= 0 ? "+" : "-") + "₹" + Math.abs(n).toLocaleString("en-IN") + " Cr" + (n >= 0 ? " (Buying)" : " (Selling)");
