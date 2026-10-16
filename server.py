@@ -1,47 +1,87 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
-from nsepython import nse_quote_ltp
-import datetime
+from nsepython import nsefetch
+import datetime, time
 
 app = Flask(__name__)
-CORS(app)  # Enables cross-origin requests from your HTML file or GitHub Pages
+CORS(app)  # allow your HTML / GitHub Pages site to call this API
 
-@app.route('/api/live-data', methods=['GET'])
-def get_live_data():
+CACHE_SECONDS = 15  # avoids hammering NSE (it rate-limits and blocks)
+_cache = {"t": 0, "data": None}
+
+
+def get_indices():
+    rows = nsefetch("https://www.nseindia.com/api/allIndices")["data"]
+    by = {r["index"]: r for r in rows}
+    return by["NIFTY 50"], by["INDIA VIX"]
+
+
+def get_option_levels(spot):
+    """Max pain, highest Put OI below spot (support), highest Call OI above spot (resistance)."""
     try:
-        # Fetching Live Nifty 50 Spot and India VIX directly from NSE
-        nifty_ltp = float(nse_quote_ltp("NIFTY 50"))
-        vix_ltp = float(nse_quote_ltp("INDIA VIX"))
-        
-        # Simulated 9:15 AM Opening reference price (updates to actual spot)
-        opening_price = 24420.00  
-        
-        # Decision Logic: Green (Call) if spot holds above opening price; Red (Put) if below
-        signal = "GREEN" if nifty_ltp >= opening_price else "RED"
-        spread_pts = round(nifty_ltp - opening_price, 2)
-        
-        return jsonify({
-            "status": "success",
-            "nifty_spot": nifty_ltp,
-            "india_vix": vix_ltp,
-            "opening_price": opening_price,
-            "spread_pts": spread_pts,
-            "signal_930": signal,
-            "timestamp": datetime.datetime.now().strftime("%I:%M:%S %p")
-        })
+        rec = nsefetch("https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY")["records"]
+        exp = rec["expiryDates"][0]
+        ce, pe = {}, {}
+        for r in rec["data"]:
+            if r.get("expiryDate") != exp:
+                continue
+            k = r["strikePrice"]
+            ce[k] = (r.get("CE") or {}).get("openInterest", 0)
+            pe[k] = (r.get("PE") or {}).get("openInterest", 0)
+        strikes = sorted(set(ce) | set(pe))
+        pain = lambda s: sum(ce.get(k, 0) * max(0, s - k) + pe.get(k, 0) * max(0, k - s) for k in strikes)
+        return {
+            "max_pain": min(strikes, key=pain),
+            "support": max((k for k in pe if k <= spot), key=pe.get, default=None),
+            "resistance": max((k for k in ce if k >= spot), key=ce.get, default=None),
+        }
     except Exception as e:
-        # Fallback response if NSE servers rate-limit or during off-market testing
-        return jsonify({
-            "status": "partial",
-            "nifty_spot": 24480.65,
-            "india_vix": 12.44,
-            "opening_price": 24420.00,
-            "spread_pts": +60.65,
-            "signal_930": "GREEN",
-            "timestamp": datetime.datetime.now().strftime("%I:%M:%S %p"),
-            "note": "Using static fallback values during off-market hours."
-        })
+        print("option chain failed:", e)
+        return {"max_pain": None, "support": None, "resistance": None}
 
-if __name__ == '__main__':
-    print("🚀 Live Free NSE Backend Server is running at http://localhost:5000/api/live-data")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+
+def get_fii_dii():
+    out = {"fii_net": None, "dii_net": None}
+    try:
+        for r in nsefetch("https://www.nseindia.com/api/fiidiiTradeReact"):
+            net = float(str(r["netValue"]).replace(",", ""))
+            if "FII" in r["category"].upper():
+                out["fii_net"] = net
+            elif "DII" in r["category"].upper():
+                out["dii_net"] = net
+    except Exception as e:
+        print("fii/dii failed:", e)
+    return out
+
+
+@app.route("/api/live-data")
+def live_data():
+    if _cache["data"] and time.time() - _cache["t"] < CACHE_SECONDS:
+        return jsonify(_cache["data"])
+    try:
+        nifty, vix = get_indices()
+        spot = float(nifty["last"])
+        prev = float(nifty["previousClose"])
+        opening = float(nifty.get("open") or 0) or prev  # before 9:15 'open' may be 0
+        data = {
+            "status": "success",
+            "nifty_spot": spot,
+            "prev_close": prev,
+            "opening_price": opening,
+            "spread_pts": round(spot - opening, 2),
+            "india_vix": float(vix["last"]),
+            "signal_930": "GREEN" if spot >= opening else "RED",
+            "timestamp": datetime.datetime.now().strftime("%I:%M:%S %p"),
+            **get_option_levels(spot),
+            **get_fii_dii(),
+        }
+        _cache.update(t=time.time(), data=data)
+        return jsonify(data)
+    except Exception as e:
+        # Return a real error instead of fake numbers, so the dashboard shows "Offline"
+        return jsonify({"status": "error", "error": str(e)}), 503
+
+
+if __name__ == "__main__":
+    print("Backend running at http://localhost:5000/api/live-data")
+    app.run(host="0.0.0.0", port=5000)
