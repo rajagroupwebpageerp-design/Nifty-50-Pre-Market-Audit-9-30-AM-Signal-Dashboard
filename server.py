@@ -1,4 +1,5 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
+import os
 from flask_cors import CORS
 from nsepython import nsefetch
 import datetime, time
@@ -52,6 +53,12 @@ def get_fii_dii():
     except Exception as e:
         print("fii/dii failed:", e)
     return out
+
+
+@app.route("/")
+def home():
+    # Serves the dashboard from the same folder, so just open http://localhost:5000
+    return send_from_directory(os.path.dirname(os.path.abspath(__file__)), "index.html")
 
 
 @app.route("/api/live-data")
